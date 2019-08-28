@@ -8,17 +8,29 @@
     <!-- references tutorials -->
     <!-- http://www.somethinghitme.com/2013/01/09/creating-a-canvas-platformer-tutorial-part-one/ -->
     <!-- https://www.html5rocks.com/en/tutorials/casestudies/gopherwoord-studios-resizing-html5-games/ -->
+    <!-- https://codepen.io/k3no/pen/vKOzdp - window resize -->
 
     <style>
+        body{
+            overflow: hidden;
+        }
+        #gameArea{
+            text-align: center;
+            background-color: black;
+            padding: 0 10% 0 10%;
+        }
         #gameCanvas {
+            background-color: #fff;
             width: 100%;
             height: 100%;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" style="border:1px solid #000"></canvas>
-    <script src="game.js"></script>
+    <div id="gameArea">
+        <canvas id="gameCanvas" style="border:1px solid #000"></canvas>
+    </div>
+    <script src="src/game.js"></script>
     <!-- minified format -->
     <!-- <script src="game.min.js"></script> -->
 </body>
