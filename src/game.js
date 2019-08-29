@@ -4,7 +4,7 @@
 })();
 
 var canvas = document.getElementById("gameCanvas");
-var context = canvas.getContext('2d');
+var ctx = canvas.getContext('2d');
 var keys = [];
 
 var gameWidth = 720,
@@ -23,38 +23,51 @@ var player = {
 canvas.width = gameWidth;
 canvas.height = gameHeight;
 
-context.fillStyle = 'Black';
-context.fillRect(30, 20, 40, 40);
-context.fillRect(110, 20, 40, 40);
-context.fillRect(60, 180, 80, 80);
+ctx.fillStyle = 'Black';
+ctx.fillRect(30, 20, 40, 40);
+ctx.fillRect(110, 20, 40, 40);
+ctx.fillRect(60, 180, 80, 80);
 
 function update() {
     // check keys
-    // if (keys[38] || keys[87]) {
-    //     // up arrow or w
-    //     if (player.velY < player.speed) {
-    //         player.velY++;
-    //     }
-    // }
-    // if (keys[40] || keys[83]) {
-    //     // down arrow or S
-    //     if (player.velY < player.speed) {
-    //         player.velY++;
-    //     }
-    // }
-    // if (keys[39] || keys[68]) {
-    //     // right arrow
-    //     if (player.velX < player.speed) {
-    //         player.velX++;
-    //     }
-    // }
-    // if (keys[37] || keys[65]) {
-    //     // left arrow
-    //     if (player.velX > -player.speed) {
-    //         player.velX--;
-    //     }
-    // }
-    // up arrow or space
+    if (keys[38] || keys[87]) {
+        // up arrow or w
+        if (player.velY > -player.speed) {
+            player.velY--;
+        }
+    }
+    if (keys[40] || keys[83]) {
+        // down arrow or S
+        if (player.velY < player.speed) {
+            player.velY++;
+        }
+    }
+    if (keys[39] || keys[68]) {
+        // right arrow
+        if (player.velX < player.speed) {
+            player.velX++;
+        }
+    }
+    if (keys[37] || keys[65]) {
+        // left arrow
+        if (player.velX > -player.speed) {
+            player.velX--;
+        }
+    }
+    
+    ctx.clearRect(0, 0, gameWidth, gameHeight);
+    ctx.beginPath();
+
+    player.x += player.velX;
+    player.y += player.velY;
+
+    player.velX = player.velY = 0
+
+    ctx.fill();//Draw charater stuff
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    requestAnimationFrame(update);
 }
 
 // resizing and loading windows
