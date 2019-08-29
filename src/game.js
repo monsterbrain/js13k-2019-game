@@ -7,6 +7,11 @@ var canvas = document.getElementById("gameCanvas");
 var ctx = canvas.getContext('2d');
 var keys = [];
 
+var storedPosArray = [];
+
+var frameTimer = 0.0;
+var keyFrameStepDuration = 200; //ms
+
 var gameWidth = 720,
     gameHeight = 480;
 var player = {
@@ -17,6 +22,7 @@ var player = {
     speed: 3,
     velX: 0,
     velY: 0,
+    accel: 2,
     color:'#3388FF'
 }
 
@@ -28,30 +34,94 @@ ctx.fillRect(30, 20, 40, 40);
 ctx.fillRect(110, 20, 40, 40);
 ctx.fillRect(60, 180, 80, 80);
 
-function update() {
+var isStoringActive = true;
+var isRewindActive = false;
+
+var rewindStep = 0;
+var prevPos, nextPos;
+
+function tweenPos(dt, duration) {
+    var pos = {}
+    pos.x = startPos.x + (endPos.x - startPos.x)*(dt/duration)
+    pos.y = startPos.y + (endPos.y - startPos.y)*(dt/duration)
+    return pos
+}
+
+var lastTime, deltaTime=0;
+function update(currentTime) {
+
+    if(lastTime==undefined) {
+        lastTime=currentTime;
+    }
+    deltaTime=(currentTime-lastTime);
+    lastTime=currentTime;
+
+    if(deltaTime){
+        if(isStoringActive){
+            frameTimer += deltaTime;
+            // console.log(frameTimer);
+            if(frameTimer>keyFrameStepDuration){
+                frameTimer = frameTimer - keyFrameStepDuration;
+                storedPosArray.push({x:player.x, y:player.y});
+                // console.log(storedPosArray);
+            }
+        } else if(isRewindActive){
+            frameTimer += deltaTime;
+            // console.log(frameTimer);
+            var newPos = tweenPos(frameTimer, keyFrameStepDuration)
+            player.x = newPos.x;
+            player.y = newPos.y;
+            if(frameTimer>keyFrameStepDuration){
+                frameTimer = frameTimer - keyFrameStepDuration;
+                try
+                {
+                    // player.x = storedPosArray[rewindStep].x;
+                    // player.y = storedPosArray[rewindStep].y;
+                    rewindStep --;
+                    startPos = storedPosArray[rewindStep]
+                    endPos = storedPosArray[rewindStep-1]
+                } catch(e){
+                    console.log(e);
+                }
+            }
+        }
+    }
+    
+    
+
+    var cheatRewind = true;
     // check keys
+    if (cheatRewind && !isRewindActive && keys[32]) {
+        // space to rewind
+        isStoringActive = false
+        isRewindActive = true
+        rewindStep = storedPosArray.length-1
+        startPos = storedPosArray[rewindStep]
+        endPos = storedPosArray[rewindStep-1]
+    }
+
     if (keys[38] || keys[87]) {
         // up arrow or w
         if (player.velY > -player.speed) {
-            player.velY--;
+            player.velY -= player.accel;
         }
     }
     if (keys[40] || keys[83]) {
         // down arrow or S
         if (player.velY < player.speed) {
-            player.velY++;
+            player.velY+=player.accel;
         }
     }
     if (keys[39] || keys[68]) {
         // right arrow
         if (player.velX < player.speed) {
-            player.velX++;
+            player.velX+= player.accel;
         }
     }
     if (keys[37] || keys[65]) {
         // left arrow
         if (player.velX > -player.speed) {
-            player.velX--;
+            player.velX-=player.accel;
         }
     }
     
@@ -68,6 +138,7 @@ function update() {
     ctx.fillRect(player.x, player.y, player.width, player.height);
 
     requestAnimationFrame(update);
+    
 }
 
 // resizing and loading windows
