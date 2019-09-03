@@ -26,6 +26,18 @@ var player = {
     color:'#3388FF'
 }
 
+var enemy = {
+    x: gameWidth / 4,
+    y: 200,
+    width: 25,
+    height: 25,
+    speed: 3,
+    velX: 0,
+    velY: 0,
+    accel: 2,
+    color:'#ff3355'
+}
+
 canvas.width = gameWidth;
 canvas.height = gameHeight;
 
@@ -53,6 +65,7 @@ function update(currentTime) {
     if(lastTime==undefined) {
         lastTime=currentTime;
     }
+
     deltaTime=(currentTime-lastTime);
     lastTime=currentTime;
 
@@ -80,7 +93,7 @@ function update(currentTime) {
                     rewindStep --;
                     startPos = storedPosArray[rewindStep]
                     endPos = storedPosArray[rewindStep-1]
-                } catch(e){
+                } catch(e) {
                     console.log(e);
                 }
             }
@@ -137,8 +150,15 @@ function update(currentTime) {
     ctx.fillStyle = player.color;
     ctx.fillRect(player.x, player.y, player.width, player.height);
 
+    // draw enemy stuff
+    ctx.fillStyle = enemy.color;
+    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+
+    if(collides(player, enemy)){
+        console.log("enemy hit");
+    }
+
     requestAnimationFrame(update);
-    
 }
 
 // resizing and loading windows
@@ -152,6 +172,19 @@ document.body.addEventListener("keydown", function (e) {
 document.body.addEventListener("keyup", function (e) {
     keys[e.keyCode] = false;
 });
+
+function collides(obj1, obj2) {
+    var collided = false;
+    var diffx = Math.abs(obj2.x - obj1.x)
+    var diffy = Math.abs(obj2.y - obj1.y)
+    if(diffx < obj1.width){
+        if(diffy < obj2.width){
+            collided = true;
+        }
+    }
+    
+    return collided;
+}
 
 function onLoad(){
     resize();
