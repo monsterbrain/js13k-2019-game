@@ -12,8 +12,10 @@ var storedPosArray = [];
 var frameTimer = 0.0;
 var keyFrameStepDuration = 200; //ms
 
-var gameWidth = 720,
-    gameHeight = 480;
+const LEFT = 0, RIGHT = 1, UP = 2, DOWN = 3, UPDOWN = 4, LEFTRIGHT = 5;
+
+var gameWidth = 720, gameHeight = 480;
+
 var player = {
     x: gameWidth / 2,
     y: 200,
@@ -35,7 +37,37 @@ var enemy = {
     velX: 0,
     velY: 0,
     accel: 2,
-    color:'#ff3355'
+    color:'#ff3355',
+    dir: RIGHT,
+    patrolDir: UPDOWN,
+    patrolTimer: 0,
+    patrolDuration: 2000 //ms
+}
+
+class Enemy {
+    patrolTimer = 0
+    patrolDuration = 2000
+    patrolDir = UPDOWN
+    constructor(x, y, w, h, speed, dir, color){
+        this.x = x
+        this.y = y
+        this.w = w
+        this.h = h
+        this.speed = speed
+        this.dir = dir
+        this.color = color
+    }
+
+    update(dt){
+        if(dt)
+            this.y -= this.speed*(dt/1000)
+    }
+
+    render(ctx){
+        ctx.fill();
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
 }
 
 canvas.width = gameWidth;
@@ -51,6 +83,8 @@ var isRewindActive = false;
 
 var rewindStep = 0;
 var prevPos, nextPos;
+
+var enemyTest = new Enemy(100,200, 25, 25, 10, UP, '#ff4433')
 
 function tweenPos(dt, duration) {
     var pos = {}
@@ -69,8 +103,8 @@ function update(currentTime) {
     deltaTime=(currentTime-lastTime);
     lastTime=currentTime;
 
-    if(deltaTime){
-        if(isStoringActive){
+    if(deltaTime) {
+        if(isStoringActive) {
             frameTimer += deltaTime;
             // console.log(frameTimer);
             if(frameTimer>keyFrameStepDuration){
@@ -149,6 +183,9 @@ function update(currentTime) {
     ctx.fill();//Draw charater stuff
     ctx.fillStyle = player.color;
     ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    enemyTest.update(deltaTime)
+    enemyTest.render(ctx)
 
     // draw enemy stuff
     ctx.fillStyle = enemy.color;
