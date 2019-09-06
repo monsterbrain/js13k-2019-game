@@ -173,15 +173,19 @@ document.body.addEventListener("keyup", function (e) {
     keys[e.keyCode] = false;
 });
 
-function collides(obj1, obj2) {
+// ref : http://jeffreythompson.org/collision-detection/rect-rect.php
+function collides(r1, r2) {
     var collided = false;
-    var diffx = Math.abs(obj2.x - obj1.x)
-    var diffy = Math.abs(obj2.y - obj1.y)
-    if(diffx < obj1.width){
-        if(diffy < obj2.width){
+    //Is the RIGHT edge of r1 to the RIGHT of the LEFT edge of r2?
+    if(r1.x+r1.width >= r2.x &&
+        r1.x<=r2.x+r2.width &&
+        r1.y+r1.height >= r2.y &&
+        r1.y<=r2.y+r2.height){
             collided = true;
         }
-    }
+    // Is the LEFT edge of r1 to the LEFT of the RIGHT edge of r2?
+    // Is the BOTTOM edge of r1 BELOW the TOP edge of r2?
+    // Is the TOP edge of r1 ABOVE the BOTTOM edge of r2?
     
     return collided;
 }
