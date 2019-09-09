@@ -59,8 +59,24 @@ class Enemy {
     }
 
     update(dt){
-        if(dt)
-            this.y -= this.speed*(dt/1000)
+        if(dt){
+            let disp = this.speed*(dt/1000)
+            if(this.patrolDir == UPDOWN){
+                this.y -= (this.dir == UP? disp: -disp)
+            } else {
+                this.x -= (this.dir == LEFT? disp: -disp)
+            }
+            
+            this.patrolTimer += dt
+            if(this.patrolTimer>this.patrolDuration){
+                this.patrolTimer -= this.patrolDuration;
+                if(this.patrolDir == UPDOWN){
+                    this.dir = this.dir == UP? DOWN: UP;
+                } else {
+                    this.dir = this.dir == LEFT? RIGHT: LEFT;
+                }
+            }
+        }
     }
 
     render(ctx){
@@ -84,7 +100,7 @@ var isRewindActive = false;
 var rewindStep = 0;
 var prevPos, nextPos;
 
-var enemyTest = new Enemy(100,200, 25, 25, 10, UP, '#ff4433')
+var enemyTest = new Enemy(100,200, 25, 25, 200, UP, '#ff4433')
 
 function tweenPos(dt, duration) {
     var pos = {}
@@ -122,8 +138,6 @@ function update(currentTime) {
                 frameTimer = frameTimer - keyFrameStepDuration;
                 try
                 {
-                    // player.x = storedPosArray[rewindStep].x;
-                    // player.y = storedPosArray[rewindStep].y;
                     rewindStep --;
                     startPos = storedPosArray[rewindStep]
                     endPos = storedPosArray[rewindStep-1]
