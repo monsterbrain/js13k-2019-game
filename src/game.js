@@ -44,6 +44,30 @@ var enemy = {
     patrolDuration: 2000 //ms
 }
 
+class Joystick {
+  cx=0; cy=0;
+  constructor(x,y,cr){
+    this.cx = x 
+    this.cy = y 
+    this.cr = cr
+  }
+  
+  getDir(mx, my){
+    var dist = (this.cx-mx)*(this.cx-mx)+(this.cy-my)*(this.cy-my)
+    if(dist<=(this.cr*this.cr)){
+      console.log("inside touch")
+      var ang = Math.atan2(my-this.cy, mx-this.cx)
+      console.log("ang = "+ang)
+    }
+  }
+  
+  draw(ctx){
+    ctx.fillStyle = "#66888888";
+    ctx.arc(this.cx, this.cy, this.cr, 0, 2 * Math.PI, false);
+    ctx.fill();
+  }
+}
+
 class Enemy {
     patrolTimer = 0
     patrolDuration = 2000
@@ -101,6 +125,7 @@ var rewindStep = 0;
 var prevPos, nextPos;
 
 var enemyTest = new Enemy(100,200, 25, 25, 200, UP, '#ff4433')
+var joystick = new Joystick(600, 360, 120)
 
 function tweenPos(dt, duration) {
     var pos = {}
@@ -200,6 +225,8 @@ function update(currentTime) {
 
     enemyTest.update(deltaTime)
     enemyTest.render(ctx)
+    
+    joystick.draw(ctx)
 
     // draw enemy stuff
     ctx.fillStyle = enemy.color;
@@ -224,6 +251,14 @@ document.body.addEventListener("keyup", function (e) {
     keys[e.keyCode] = false;
 });
 
+canvas.addEventListener("mousedown",(e)=>{
+  var rect = canvas.getBoundingClientRect()
+  var pos = getMousePos(canvas, e)
+  console.log(pos.x+","+pos.y)
+  joystick.getDir(pos.x, pos.y)
+})
+
+
 // ref : http://jeffreythompson.org/collision-detection/rect-rect.php
 function collides(r1, r2) {
     var collided = false;
@@ -242,7 +277,7 @@ function collides(r1, r2) {
 }
 
 function onLoad(){
-    resize();
+    //resize();
     update();
 }
 
@@ -251,13 +286,24 @@ function resize() {
     // Resize the window, not the pen
     // Our canvas must cover full height of screen
     // regardless of the resolution
+    console.log("resize")
     var height = window.innerHeight;
   
     // So we need to calculate the proper scaled width
     // that should work well with every resolution
     var ratio = canvas.width / canvas.height;
     var width = height * ratio;
+    
+    console.log(width+","+height)
   
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
+}
+
+function getMousePos(canvas, evt) {
+  var rect = canvas.getBoundingClientRect();
+  return {
+    x: (evt.clientX - rect.left) / (rect.right - rect.left) * canvas.width,
+    y: (evt.clientY - rect.top) / (rect.bottom - rect.top) * canvas.height
+  };
 }
