@@ -1,4 +1,4 @@
-// v 0.5 updated 12-10-19
+// v 0.5 updated 12-10-19 - 11 am
 (function () {
     var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
     window.requestAnimationFrame = requestAnimationFrame;
@@ -22,8 +22,8 @@ var player = {
     y: 200,
     width: 25,
     height: 25,
-    dir: UP,
-    speed: 3,
+    dir: -1,
+    speed: 5,
     velX: 0,
     velY: 0,
     accel: 2,
@@ -95,16 +95,39 @@ class Joystick {
     ctx.fill();
   }
 }
- 
-class Enemy {
-    constructor(x, y, w, h, speed, dir, color){
+
+class Box {
+    // common stuff
+    constructor(x, y, w, h, dir, color){
         this.x = x
         this.y = y
         this.w = w
         this.h = h
-        this.speed = speed
         this.dir = dir
         this.color = color
+    }
+}
+
+class Gem extends Box{
+    render(ctx){
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo((this.x+this.w/2), this.y);
+        ctx.lineTo(this.x+this.w, this.y+this.h);
+        ctx.lineTo(this.x, this.y+this.h);
+        ctx.closePath();
+        if(!this.stroked){
+            ctx.stroke();
+        }else {
+            ctx.fill();
+        }
+    }
+}
+ 
+class Enemy extends Box {
+    constructor(x, y, w, h, speed, dir, color){
+        super(x, y, w,h, dir, color)
+        this.speed = speed
         this.patrolTimer = 0
         this.patrolDuration = 2000
         this.patrolDir = UPDOWN
@@ -137,6 +160,24 @@ class Enemy {
         ctx.fillRect(this.x, this.y, this.w, this.h);
     }
 }
+
+class UI{
+    constructor(){
+        this.isRecording = false
+        this.isReplaying = false
+    }
+
+    render(ctx){
+        if(this.isRecording){
+            ctx.beginPath();
+            ctx.fillStyle = "#ff5555";
+            ctx.arc(680, 40, 20, 0, 2 * Math.PI, false);
+            ctx.fill();
+
+            drawText(ctx, '#f00', 'Recording..', 620, 90)
+        }
+    }
+}
  
 canvas.width = gameWidth;
 canvas.height = gameHeight;
@@ -146,7 +187,7 @@ ctx.fillRect(30, 20, 40, 40);
 ctx.fillRect(110, 20, 40, 40);
 ctx.fillRect(60, 180, 80, 80);
  
-var isStoringActive = true;
+var isStoringActive = false;
 var isRewindActive = false;
  
 var rewindStep = 0;
@@ -154,6 +195,8 @@ var prevPos, nextPos;
  
 var enemyTest = new Enemy(100,200, 25, 25, 200, UP, '#ff4433')
 var joystick = new Joystick(600, 360, 120)
+var gameUI = new UI()
+var gem = new Gem(100, 100, 100, 100, UP, '#ff0')
  
 function tweenPos(dt, duration) {
     var pos = {}
@@ -250,6 +293,11 @@ function update(currentTime) {
         }
     }
 
+    if(player.dir>0 && !isStoringActive) {
+        isStoringActive = true
+        gameUI.isRecording = true
+    }
+
     if(!isMouseDown)
         player.dir = -1 // reset player movement
    
@@ -265,20 +313,30 @@ function update(currentTime) {
     ctx.fillStyle = player.color;
     ctx.fillRect(player.x, player.y, player.width, player.height);
  
+    // draw enemy stuff
     enemyTest.update(deltaTime)
     enemyTest.render(ctx)
+    gem.render(ctx)
    
     joystick.draw(ctx)
+
+    drawText(ctx, '#f00', 'works best in landscape!', 5, 25)
+    gameUI.render(ctx)
  
-    // draw enemy stuff
-    ctx.fillStyle = enemy.color;
-    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+    
  
     if(collides(player, enemy)){
         console.log("enemy hit");
     }
  
     requestAnimationFrame(update);
+}
+
+function drawText(ctx, color, text, x, y){
+    ctx.font = '20px sans-serif'; //bold italic
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
 }
  
 // resizing and loading windows
@@ -352,7 +410,9 @@ function resize() {
     // Our canvas must cover full height of screen
     // regardless of the resolution
     console.log("resize")
-    var height = window.innerHeight;
+
+    var {innerHeight, innerWidth} = window
+    var height = (innerWidth>innerHeight)? innerHeight: innerWidth;
  
     // So we need to calculate the proper scaled width
     // that should work well with every resolution
