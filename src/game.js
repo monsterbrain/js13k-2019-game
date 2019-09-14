@@ -381,6 +381,17 @@ canvas.addEventListener("mouseup",(e)=>{
 // ref http://bencentra.com/code/2014/12/05/html5-canvas-touch-events.html
 // Set up touch events for mobile, etc
 canvas.addEventListener("touchstart", function (e) {
+    onTouched(e)
+}, false);
+canvas.addEventListener("touchend", function (e) {
+    var mouseEvent = new MouseEvent("mouseup", {});
+    canvas.dispatchEvent(mouseEvent);
+}, false);
+canvas.addEventListener("touchmove", function (e) {
+    onTouched(e)
+  }, false);
+
+  function onTouched(e){
     mousePos = getMousePos(canvas, e);
     var touch = e.touches[0];
     var mouseEvent = new MouseEvent("mousedown", {
@@ -388,13 +399,7 @@ canvas.addEventListener("touchstart", function (e) {
         clientY: touch.clientY
     });
     canvas.dispatchEvent(mouseEvent);
-}, false);
-canvas.addEventListener("touchend", function (e) {
-    var mouseEvent = new MouseEvent("mouseup", {});
-    canvas.dispatchEvent(mouseEvent);
-}, false);
-canvas.addEventListener("touchmove", function (e) {
-  }, false);
+  }
  
  
 // ref : http://jeffreythompson.org/collision-detection/rect-rect.php
