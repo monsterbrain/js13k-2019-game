@@ -17,35 +17,21 @@ const LEFT = 0, RIGHT = 1, UP = 2, DOWN = 3, UPDOWN = 4, LEFTRIGHT = 5;
  
 var gameWidth = 720, gameHeight = 480;
 
-var level = 0
+const REWIND_LVL_KEY='rewind_level_key';
+var level = parseInt(localStorage.getItem(REWIND_LVL_KEY)||'0')
+var enemies = []
  
 var player = {
     x: gameWidth / 2,
     y: 200,
-    width: 25,
-    height: 25,
+    w: 25,
+    h: 25,
     dir: -1,
     speed: 5,
     velX: 0,
     velY: 0,
     accel: 2,
     color:'#3388FF'
-}
- 
-var enemy = {
-    x: gameWidth / 4,
-    y: 200,
-    width: 25,
-    height: 25,
-    speed: 3,
-    velX: 0,
-    velY: 0,
-    accel: 2,
-    color:'#ff3355',
-    dir: RIGHT,
-    patrolDir: UPDOWN,
-    patrolTimer: 0,
-    patrolDuration: 2000 //ms
 }
  
 class Joystick {
@@ -87,7 +73,7 @@ class Joystick {
  
   draw(ctx){
       ctx.beginPath();
-    ctx.fillStyle = "#888888";
+    ctx.fillStyle = "rgba(80, 80, 80, 0.25)";
     ctx.arc(this.cx, this.cy, this.cr, 0, 2 * Math.PI, false);
     ctx.fill();
     // inner joystick
@@ -113,30 +99,39 @@ class Box {
 class Gem extends Box{
     render(ctx){
         ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.moveTo((this.x+this.w/2), this.y);
-        ctx.lineTo(this.x+this.w, this.y+this.h);
-        ctx.lineTo(this.x, this.y+this.h);
-        ctx.closePath();
-        if(!this.stroked){
+        drawTria(ctx, 
+            (this.x+this.w/2), this.y,
+            this.x+this.w, this.y+this.h,
+            this.x, this.y+this.h);
+        if(this.stroked){
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = this.color;
             ctx.stroke();
         }else {
             ctx.fill();
         }
     }
 }
+
+function drawTria(ctx, x1, y1, x2, y2, x3, y3){
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x3, y3);
+    ctx.closePath();
+}
  
 class Enemy extends Box {
-    constructor(x, y, w, h, speed, dir, color){
+    constructor(x, y, w, h, speed, dir, patDuration, color){
         super(x, y, w,h, dir, color)
         this.speed = speed
         this.patrolTimer = 0
-        this.patrolDuration = 2000
+        this.patrolDuration = patDuration
         this.patrolDir = UPDOWN
     }
  
     update(dt){
-        if(dt){
+        if(dt && this.patrolDuration>0){
             let disp = this.speed*(dt/1000)
             if(this.patrolDir == UPDOWN){
                 this.y -= (this.dir == UP? disp: -disp)
@@ -170,25 +165,29 @@ class UI{
     }
 
     render(ctx){
+        ctx.beginPath();
         if(this.isRecording){
-            ctx.beginPath();
             ctx.fillStyle = "#ff5555";
             ctx.arc(680, 40, 20, 0, 2 * Math.PI, false);
             ctx.fill();
-
             drawText(ctx, '#f00', 'Recording..', 620, 90)
+        }else if(this.isReplaying){
+            ctx.fillStyle = "#ff5555";
+            drawTria(ctx, 640,5, 608,40, 640,70)
+            drawTria(ctx, 690,5, 658,40, 700,70)
+            ctx.fill();
+            drawText(ctx, '#f00', 'Rewinding..', 620, 90)
         }
-        drawText(ctx, '#f00', 'Level-'+(level+1), 320, 50)
+        if(isGameWon || isGameOver){
+            drawText(ctx, '#000', isGameWon?'-LEVEL WON-':'-GAME OVER-', 320, 240)
+            drawText(ctx, '#000', '-Press R or Reload page to '+(isGameWon?'load next level-':'restart-'), 240, 260)
+        }
+        drawText(ctx, '#000', 'Level-'+(level+1), 320, 50)
     }
 }
  
 canvas.width = gameWidth;
 canvas.height = gameHeight;
- 
-ctx.fillStyle = 'Black';
-ctx.fillRect(30, 20, 40, 40);
-ctx.fillRect(110, 20, 40, 40);
-ctx.fillRect(60, 180, 80, 80);
  
 var isStoringActive = false;
 var isRewindActive = false;
@@ -196,10 +195,13 @@ var isRewindActive = false;
 var rewindStep = 0;
 var prevPos, nextPos;
  
-var enemyTest = new Enemy(100,200, 25, 25, 200, UP, '#ff4433')
+var enemyTest = new Enemy(100,200, 25, 25, 200, UP, 0, '#ff4433')
 var joystick = new Joystick(600, 360, 120)
 var gameUI = new UI()
-var gem = new Gem(100, 100, 100, 100, UP, '#ff0')
+
+var startPoint, endPoint;
+
+var isGameOver = false, isGameWon = false;
  
 function tweenPos(dt, duration) {
     var pos = {}
@@ -230,26 +232,28 @@ function update(currentTime) {
         } else if(isRewindActive){
             frameTimer += deltaTime;
             // console.log(frameTimer);
-            var newPos = tweenPos(frameTimer, keyFrameStepDuration)
-            player.x = newPos.x;
-            player.y = newPos.y;
-            if(frameTimer>keyFrameStepDuration){
-                frameTimer = frameTimer - keyFrameStepDuration;
-                try
-                {
-                    rewindStep --;
-                    startPos = storedPosArray[rewindStep]
-                    endPos = storedPosArray[rewindStep-1]
-                } catch(e) {
-                    console.log(e);
+            try{
+                var newPos = tweenPos(frameTimer, keyFrameStepDuration)
+                player.x = newPos.x;
+                player.y = newPos.y;
+                if(frameTimer>keyFrameStepDuration){
+                    frameTimer = frameTimer - keyFrameStepDuration;
+                    
+                    rewindStep--;
+                    if(rewindStep<=0){
+                        isRewindActive = false
+                    }else{
+                        startPos = storedPosArray[rewindStep];
+                        endPos = storedPosArray[rewindStep-1];
+                    }
                 }
+            } catch(e) {
+                console.log(e);
             }
         }
     }
-   
-   
  
-    var cheatRewind = true;
+    var cheatRewind = false;
     // check keys
     if (cheatRewind && !isRewindActive && keys[32]) {
         // space to rewind
@@ -258,6 +262,21 @@ function update(currentTime) {
         rewindStep = storedPosArray.length-1
         startPos = storedPosArray[rewindStep]
         endPos = storedPosArray[rewindStep-1]
+    }
+
+    ctx.clearRect(0, 0, gameWidth, gameHeight);
+
+    if(isGameOver){
+        if (keys[82]){
+            location.reload()
+        }
+        gameUI.render(ctx)
+        requestAnimationFrame(update);
+        return;
+    }
+
+    if (keys[67]){ //c to clear local storage
+        localStorage.setItem(REWIND_LVL_KEY,'0')
     }
  
     var anyKeyDown = false
@@ -276,6 +295,10 @@ function update(currentTime) {
     if (keys[37] || keys[65]) {
         // left arrow
         player.dir = LEFT
+    }
+
+    if(isRewindActive){
+        player.dir = -1
     }
    
     if(player.dir == UP){
@@ -296,7 +319,7 @@ function update(currentTime) {
         }
     }
 
-    if(player.dir>0 && !isStoringActive) {
+    if(player.dir>-1 && !isStoringActive) {
         isStoringActive = true
         gameUI.isRecording = true
     }
@@ -304,7 +327,6 @@ function update(currentTime) {
     if(!isMouseDown)
         player.dir = -1 // reset player movement
    
-    ctx.clearRect(0, 0, gameWidth, gameHeight);
     ctx.beginPath();
  
     player.x += player.velX;
@@ -314,32 +336,78 @@ function update(currentTime) {
  
     ctx.fill();//Draw charater stuff
     ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    ctx.fillRect(player.x, player.y, player.w, player.h);
  
     // draw enemy stuff
-    enemyTest.update(deltaTime)
-    enemyTest.render(ctx)
-    gem.render(ctx)
-   
+    for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        enemy.update(deltaTime)
+        enemy.render(ctx)
+
+        if(collides(player, enemy)){
+            console.log("enemy hit");
+            isGameOver = true
+            isStoringActive = false;
+            isRewindActive = false;
+            gameUI.isRecording = false
+            gameUI.isReplaying = false
+        }
+    }
+
+    startPoint.render(ctx)
+    endPoint.render(ctx)
+    
     joystick.draw(ctx)
 
-    drawText(ctx, '#f00', 'works best in landscape!', 5, 25)
+    drawText(ctx, '#222', 'works best in landscape!', 5, 455)
+    drawText(ctx, '#222', 'controls : arrow keys/wasd/joystick', 5, 435)
+    drawText(ctx, '#222', 'touch the green Gem', 5, 405)
     gameUI.render(ctx)
  
     
  
-    if(collides(player, enemy)){
-        console.log("enemy hit");
+    if(isStoringActive && collides(player, endPoint)){
+        console.log("end hit");
+        isStoringActive = false;
+        isRewindActive = true;
+        gameUI.isRecording = false
+        gameUI.isReplaying = true
+        rewindStep = storedPosArray.length-1
+        startPos = storedPosArray[rewindStep]
+        endPos = storedPosArray[rewindStep-1]
+
+        startPoint.color = 'green'
+        endPoint.color = 'grey'
+        endPoint.stroked = true
+        startPoint.stroked = false
+    } else if(isRewindActive && collides(player, startPoint)){
+        localStorage.setItem(REWIND_LVL_KEY,''+(level+1))
+        isGameOver = true;
+        isGameWon = true;
     }
  
     requestAnimationFrame(update);
 }
 
+const enemyColor = '#ff2233'
+
 function loadLevel(){
+    enemies.push(new Enemy(120, 0, 440, 140, 0, UP, 0, enemyColor))
+    enemies.push(new Enemy(120, 360, 440, 140, 0, UP, 0, enemyColor))
+
+    startPoint = new Gem(60, 210, 80, 80, UP, 'grey')
+    startPoint.stroked = true
+    endPoint = new Gem(620, 210, 80, 80, UP, 'green')
+
+    player.x = 85;
+    player.y = 250;
+
   if(level==0){
-    
+    // moving
+    enemies.push(new Enemy(320, 145, 40, 40, 50, DOWN, 3000, enemyColor))
   }else if(level==1){
-    
+    enemies.push(new Enemy(220, 145, 40, 40, 80, DOWN, 2000, enemyColor))
+    enemies.push(new Enemy(420, 360, 40, 40, 80, UP, 2000, enemyColor))
   }else if(level==2){
     
   }
@@ -406,10 +474,10 @@ canvas.addEventListener("touchmove", function (e) {
 function collides(r1, r2) {
     var collided = false;
     //Is the RIGHT edge of r1 to the RIGHT of the LEFT edge of r2?
-    if(r1.x+r1.width >= r2.x &&
-        r1.x<=r2.x+r2.width &&
-        r1.y+r1.height >= r2.y &&
-        r1.y<=r2.y+r2.height){
+    if(r1.x+r1.w >= r2.x &&
+        r1.x<=r2.x+r2.w &&
+        r1.y+r1.h >= r2.y &&
+        r1.y<=r2.y+r2.h){
             collided = true;
         }
     // Is the LEFT edge of r1 to the LEFT of the RIGHT edge of r2?
@@ -421,6 +489,7 @@ function collides(r1, r2) {
  
 function onLoad(){
     //resize();
+    loadLevel()
     update();
 }
  
