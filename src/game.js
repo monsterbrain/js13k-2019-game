@@ -16,6 +16,8 @@ var keyFrameStepDuration = 200; //ms
 const LEFT = 0, RIGHT = 1, UP = 2, DOWN = 3, UPDOWN = 4, LEFTRIGHT = 5;
  
 var gameWidth = 720, gameHeight = 480;
+
+var level = 0
  
 var player = {
     x: gameWidth / 2,
@@ -176,6 +178,7 @@ class UI{
 
             drawText(ctx, '#f00', 'Recording..', 620, 90)
         }
+        drawText(ctx, '#f00', 'Level-'+(level+1), 320, 50)
     }
 }
  
@@ -332,6 +335,16 @@ function update(currentTime) {
     requestAnimationFrame(update);
 }
 
+function loadLevel(){
+  if(level==0){
+    
+  }else if(level==1){
+    
+  }else if(level==2){
+    
+  }
+}
+
 function drawText(ctx, color, text, x, y){
     ctx.font = '20px sans-serif'; //bold italic
     ctx.textBaseline = 'bottom';
@@ -380,6 +393,8 @@ canvas.addEventListener("touchend", function (e) {
     var mouseEvent = new MouseEvent("mouseup", {});
     canvas.dispatchEvent(mouseEvent);
 }, false);
+canvas.addEventListener("touchmove", function (e) {
+  }, false);
  
  
 // ref : http://jeffreythompson.org/collision-detection/rect-rect.php
